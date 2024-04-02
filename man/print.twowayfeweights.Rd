@@ -28,9 +28,6 @@ file = "wagepan_twfeweights.dta"
 url = paste("https://raw.githubusercontent.com", repo, file, sep = "/")
 wagepan =  haven::read_dta(url)
 
-# Now let's load this package and run some estimations.
-library(TwoWayFEWeights)
-
 # The default `type = "feTR"` estimation strategy uses a fixed-effects
 # strategy under the assumption that parallel trends holds. 
 twowayfeweights(

@@ -1,5 +1,5 @@
 #' Estimation of the weights attached to the two-way fixed effects regressions.
-#' @importFrom haven read_dta
+#'
 #' @md
 #' @description Estimates the weights and measure of robustness to treatment
 #'   effect heterogeneity attached to two-way fixed effects regressions.
@@ -108,6 +108,7 @@
 #' @references de Chaisemartin, C and D'Haultfoeuille, X (2020a). American Economic Review, vol. 110, no. 9.  Two-Way Fixed Effects Estimators with Heterogeneous Treatment Effects.
 #' @references de Chaisemartin, C and D'Haultfoeuille, X (2020b).  Two-way fixed effects regressions with several treatments.
 #' @importFrom utils write.csv
+#' @importFrom haven read_dta
 #' @examples
 #' # The following example is based on data from F. Vella and M. Verbeek (1998), 
 #' # "Whose Wages Do Unions Raise? A Dynamic Model of Unionism and Wage Rate 
@@ -121,9 +122,6 @@
 #' file = "wagepan_twfeweights.dta"
 #' url = paste("https://raw.githubusercontent.com", repo, file, sep = "/")
 #' wagepan =  haven::read_dta(url)
-#' 
-#' # Now let's load this package and run some estimations.
-#' library(TwoWayFEWeights)
 #' 
 #' # The default `type = "feTR"` estimation strategy uses a fixed-effects
 #' # strategy under the assumption that parallel trends holds. 
@@ -166,21 +164,27 @@ twowayfeweights = function(
     test_random_weights = NULL,
     path = NULL
     ) {
-
+  
   # type = match.arg(tolower(type))
   type = match.arg(type)
   if (type == "fdTR" && is.null(D0)) {
     stop("The `D0` argument must also be provided if `type = 'fdTR'`.\n")
   }
-
+  
   if (!is.null(other_treatments) && type != "feTR") {
     stop("When the `other_treatments` argument is specified, you need to specify `type = 'feTR'` too.")
+  }
+
+  for (v in c(Y, G, T, D, D0)) {
+    if (!inherits(data[[v]], "numeric")){
+      data[[v]] <- as.numeric(data[[v]])
+    }
   }
 
   controls_rename = get_controls_rename(controls)
   treatments_rename = get_treatments_rename(other_treatments)
   random_weight_rename = get_random_weight_rename(test_random_weights)
-
+  
   data_renamed = twowayfeweights_rename_var(data, Y, G, T, D, D0, controls, other_treatments, test_random_weights)
   data_transformed = twowayfeweights_transform(data_renamed, controls_rename, weights, treatments_rename)
   data_filtered = twowayfeweights_filter(data_transformed, Y, G, T, D, D0, type, controls_rename, treatments_rename)
@@ -192,7 +196,7 @@ twowayfeweights = function(
     controls   = controls_rename,
     treatments = treatments_rename
   )
-
+  
   # Create main return object list
   res = twowayfeweights_result(
     dat            = res$dat,
@@ -200,7 +204,7 @@ twowayfeweights = function(
     random_weights = random_weight_rename,
     treatments     = treatments_rename
   )
-
+  
   # if (is.null(other_treatments)) {
   #   res = twowayfeweights_result(res$dat, res$beta, random_weight_rename)
   #   # data_result = twowayfeweights_print_results(type, res, D, summary_measures, res$beta, random_weight_rename)
@@ -208,21 +212,21 @@ twowayfeweights = function(
   #   res = twowayfeweights_result_other_treatment(res$dat, treatments_rename, res$beta, random_weight_rename)
   #   # data_result = twowayfeweights_print_result_other_treatment(res, treatments_rename, D, res$beta, random_weight_rename)
   # }
-
+  
   # Set class and add extra features for post-processing (printing etc.)
   class(res) = "twowayfeweights"
-
+  
   res$type = type
   res$params = list(Y = Y, G = G, T = T, D = D, D0 = D0)
   res$summary_measures = summary_measures
   res$other_treatments = treatments_rename
   res$random_weights = random_weight_rename
-
-
+  
+  
   if (!is.null(path)) {
     write.csv(res$dat_result, path, row.names = FALSE)
   }
-
+  
   return(res)
-
+  
 }

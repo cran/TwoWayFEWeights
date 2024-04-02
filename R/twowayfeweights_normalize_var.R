@@ -7,14 +7,14 @@
 #' @importFrom rlang :=
 #' @noRd
 twowayfeweights_normalize_var = function(df, varname) {
-
+  
   .data = NULL
-
+  
   var = rlang::sym(varname)
   sdf = df %>%
     dplyr::group_by(.data$G, .data$T) %>%
     dplyr::summarise(tmp_mean_gt = mean(!!var), tmp_sd_gt = stats::sd(!!var))
-
+  
   tmp_sd_gt_sum = sum(sdf$tmp_sd_gt, na.rm=TRUE)
   if (tmp_sd_gt_sum > 0) {
     df = df %>% 
@@ -23,6 +23,6 @@ twowayfeweights_normalize_var = function(df, varname) {
       dplyr::select(-.data$tmp_mean_gt) %>%
       dplyr::select(-.data$tmp_sd_gt)
   }
-
+  
   return(list(retcode = (tmp_sd_gt_sum > 0), df = df))
 }
