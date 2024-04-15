@@ -1,11 +1,11 @@
-a1d59744eac39d77f69c9dbb6b8ccde1 *DESCRIPTION
+868b72f06dc6af4cf6f61d9e0cb4eb76 *DESCRIPTION
 2502421f4df475d62fc8013dd5b5370c *LICENSE
 28c7b5c6b2158f4a6c94b4047bbe6798 *NAMESPACE
-6f6b2c62b132f9fda213f4eee9128947 *R/print.R
-bfecbb7df9e9184258a14aeb842684a5 *R/twowayfeweights.R
-7733efb29a6e312d1b3b97858c9d8b57 *R/twowayfeweights_calculate.R
-6db21415f1486fbc5123cc22cd284c32 *R/twowayfeweights_normalize_var.R
-4a47423560dd6ddb32f717735e0de499 *R/twowayfeweights_result.R
+f0ce38ac9cede8aecf8c70a6094697a2 *R/print.R
+4c772a5f681bf4c2508de5d669acd9fa *R/twowayfeweights.R
+e91e9ba43b68b874113a9a536d6ed59b *R/twowayfeweights_calculate.R
+76a5f5d2eb87561e4853c7ffdf361029 *R/twowayfeweights_normalize_var.R
+5c010da2b67092baf0b54265da109c89 *R/twowayfeweights_result.R
 0ce36916071eeac38c9e2ebee3576428 *R/utils.R
 bc85821669e72a3f0f020f183006367e *man/print.twowayfeweights.Rd
 dba8be4aee56f5190bbfe35fc33ace07 *man/twowayfeweights.Rd
