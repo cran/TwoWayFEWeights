@@ -28,7 +28,7 @@ twowayfeweights_calculate = function(
   
   type_TR = type %in% c("feTR", "fdTR")
   type_fe = type %in% c("feTR", "feS")
-  
+
   if (type_TR) {
     DVAR = if (type=="feTR") "D" else if (type=="fdTR") "D0"
     mean_D = weighted.mean(dat[[DVAR]], dat$weights, na.rm = TRUE)
@@ -196,7 +196,6 @@ twowayfeweights_calculate = function(
       dplyr::mutate(weight_result = .data$W * .data$nat_weight) %>%
       dplyr::select(-.data$eps_2, -.data$P_gt, -.data$abs_delta_D)
   }
-  
   
   return(list(dat = dat, beta = beta))
   })

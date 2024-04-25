@@ -2,7 +2,7 @@ Package: TwoWayFEWeights
 Type: Package
 Title: Estimation of the Weights Attached to the Two-Way Fixed Effects
         Regressions
-Version: 2.0.2
+Version: 2.0.3
 Authors@R: 
     c(
     person("Diego", "Ciccia", role = c("aut", "cre"), email = "diego.ciccia@sciencespo.fr"),
@@ -30,6 +30,6 @@ Author: Diego Ciccia [aut, cre],
   Clément de Chaisemartin [aut],
   Grant McDermott [ctb]
 RoxygenNote: 7.2.3
-Packaged: 2024-04-15 13:04:32 UTC; 39380
+Packaged: 2024-04-25 14:21:42 UTC; 39380
 Repository: CRAN
-Date/Publication: 2024-04-15 15:20:02 UTC
+Date/Publication: 2024-04-25 15:00:05 UTC
