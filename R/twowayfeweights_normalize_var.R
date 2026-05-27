@@ -1,29 +1,30 @@
-#' Internal function for normalizing variables
-#' 
-#' @param df A data frame.
-#' @param varname Variable that you want to normalize.
-#' @returns A list.
-#' @importFrom magrittr %>%
-#' @importFrom rlang :=
+#' Internal function for normalizing a (g, t)-varying variable.
+#'
+#' Replaces the values of `varname` with their `(G, T)` cell mean whenever the
+#' variable shows any within-cell variation.
+#'
+#' @param df A data frame or data.table.
+#' @param varname Name of the column to normalize.
+#' @returns A list with `retcode` (TRUE if normalization was performed) and
+#'   `df` (the possibly updated data.table).
+#' @importFrom data.table as.data.table is.data.table
 #' @noRd
-twowayfeweights_normalize_var = function(df, varname) {
-  suppressWarnings({ 
-  .data = NULL
-  
-  var = rlang::sym(varname)
-  sdf = df %>%
-    dplyr::group_by(.data$G, .data$T) %>%
-    dplyr::summarise(tmp_mean_gt = mean(!!var), tmp_sd_gt = stats::sd(!!var))
-  
-  tmp_sd_gt_sum = sum(sdf$tmp_sd_gt, na.rm=TRUE)
-  if (tmp_sd_gt_sum > 0) {
-    df = df %>% 
-      dplyr::left_join(sdf, by=c("T", "G")) %>%
-      dplyr::mutate(!!var := .data$tmp_mean_gt) %>%
-      dplyr::select(-.data$tmp_mean_gt) %>%
-      dplyr::select(-.data$tmp_sd_gt)
+twowayfeweights_normalize_var <- function(df, varname) {
+
+  if (!data.table::is.data.table(df)) {
+    df <- data.table::as.data.table(df)
   }
-  })
-  
-  return(list(retcode = (tmp_sd_gt_sum > 0), df = df))
+
+  cell_stats <- df[, list(tmp_mean_gt = mean(get(varname), na.rm = TRUE),
+                          tmp_sd_gt   = stats::sd(get(varname), na.rm = TRUE)),
+                   by = c("G", "T")]
+
+  any_within_var <- sum(cell_stats$tmp_sd_gt, na.rm = TRUE) > 0
+
+  if (any_within_var) {
+    df[cell_stats, on = c("G", "T"),
+       (varname) := i.tmp_mean_gt]
+  }
+
+  list(retcode = any_within_var, df = df)
 }

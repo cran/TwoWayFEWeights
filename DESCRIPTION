@@ -2,37 +2,39 @@ Package: TwoWayFEWeights
 Type: Package
 Title: Estimation of the Weights Attached to the Two-Way Fixed Effects
         Regressions
-Version: 2.0.4
+Version: 2.1.0
 Authors@R: 
     c(
-    person("Diego", "Ciccia", role = c("aut", "cre"), email = "diego.ciccia@kellogg.northwestern.edu"),
+    person("Anzony", "Quispe", role = c("aut", "cre"), email = "anzony.quispe@gmail.com"),
+    person("Diego", "Ciccia", role = "aut", email = "diego.ciccia@kellogg.northwestern.edu"),
     person("Felix", "Knau", role = "aut", email = "felix.knau@sciencespo.fr"),
-    person("Mélitine", "Malezieux", role = "aut", email = "melitine.malezieux@sciencespo.fr"),	
+    person("Mélitine", "Malezieux", role = "aut", email = "melitine.malezieux@sciencespo.fr"),
     person("Doulo", "Sow", role = "aut", email = "doulo.sow@ensae.fr"),
     person("Shuo", "Zhang", role = "aut", email = "shuo_zhang@ucsb.edu"),
     person("Clément", "de Chaisemartin", role = "aut", email = "clement.dechaisemartin@sciencespo.fr"),
     person("Grant", "McDermott", role = "ctb", email = "gmcd@amazon.com")
     )
-Maintainer: Diego Ciccia <diego.ciccia@kellogg.northwestern.edu>
+Maintainer: Anzony Quispe <anzony.quispe@gmail.com>
 Description: 
-    Estimates the weights and measure of robustness to treatment effect heterogeneity attached to two-way fixed effects regressions.
-    Clément de Chaisemartin, Xavier D'Haultfœuille (2020) <DOI: 10.1257/aer.20181169>.
+    Computes the implicit weights attached to two-way fixed effects regressions, as well as summary measures of these regressions' robustness to heterogeneous treatment effects. Based on de Chaisemartin and D'Haultfoeuille (2020) <DOI:10.1257/aer.20181169>.
 License: MIT + file LICENSE
 Encoding: UTF-8
-Depends: R(>= 3.4.0)
-Imports: dplyr, magrittr, cli, fixest, rlang, stats, utils, haven
+Depends: R(>= 3.5.0)
+Imports: data.table, cli, fixest, Rcpp (>= 1.0.7), stats, utils, haven
+LinkingTo: Rcpp
 Suggests: tinytest, devtools
-NeedsCompilation: no
-Author: Diego Ciccia [aut, cre],
+NeedsCompilation: yes
+URL: https://github.com/Credible-Answers/twowayfeweights
+BugReports: https://github.com/Credible-Answers/twowayfeweights/issues
+RoxygenNote: 7.3.3
+Packaged: 2026-05-18 07:04:33 UTC; anzony.quisperojas
+Author: Anzony Quispe [aut, cre],
+  Diego Ciccia [aut],
   Felix Knau [aut],
   Mélitine Malezieux [aut],
   Doulo Sow [aut],
   Shuo Zhang [aut],
   Clément de Chaisemartin [aut],
   Grant McDermott [ctb]
-URL: https://github.com/chaisemartinPackages
-BugReports: https://github.com/chaisemartinPackages/twowayfeweights/issues
-RoxygenNote: 7.3.2
-Packaged: 2024-07-23 07:39:38 UTC; cicci
 Repository: CRAN
-Date/Publication: 2024-07-26 09:20:09 UTC
+Date/Publication: 2026-05-27 07:00:32 UTC

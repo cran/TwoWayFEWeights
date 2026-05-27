@@ -109,6 +109,9 @@
 #' @references de Chaisemartin, C and D'Haultfoeuille, X (2020b).  Two-way fixed effects regressions with several treatments.
 #' @importFrom utils write.csv
 #' @importFrom haven read_dta
+#' @importFrom data.table as.data.table is.data.table
+#' @importFrom Rcpp evalCpp
+#' @useDynLib TwoWayFEWeights, .registration = TRUE
 #' @examples
 #' # The following example is based on data from F. Vella and M. Verbeek (1998), 
 #' # "Whose Wages Do Unions Raise? A Dynamic Model of Unionism and Wage Rate 
@@ -192,7 +195,7 @@ twowayfeweights = function(
 
   # Calculate the weights
   res = twowayfeweights_calculate(
-    dat        = data_filtered,
+    dt         = data_filtered,
     type       = type,
     controls   = controls_rename,
     treatments = treatments_rename

@@ -1,60 +1,62 @@
-#' @importFrom rlang sym
+#' Internal helpers (renaming, transformation, filtering, summary).
+#'
+#' @importFrom data.table as.data.table is.data.table setnames set setDT
+#' @importFrom stats as.formula coef vcov
+#' @noRd
 
 printf <- function(...) print(sprintf(...))
 
-fn_ctrl_rename <- function(x) paste("ctrl", x, sep="_")
-get_controls_rename <- function(controls) unlist(lapply(controls, fn_ctrl_rename))
-fn_treatment_rename <- function(x) paste("OT", x, sep="_")
+fn_ctrl_rename            <- function(x) paste("ctrl",   x, sep = "_")
+fn_treatment_rename       <- function(x) paste("OT",     x, sep = "_")
+fn_treatment_weight_rename <- function(x) paste0("weight_", x)
+fn_random_weight_rename   <- function(x) paste("RW",     x, sep = "_")
 
-get_treatments_rename <- function(treatments) {
-  unlist(lapply(treatments, fn_treatment_rename))
-}
-
-fn_treatment_weight_rename <- function(x) paste("weight_", x, sep = "")
-fn_random_weight_rename <- function(x) paste("RW", x, sep="_")
-get_random_weight_rename <- function(ws) unlist(lapply(ws, fn_random_weight_rename))
+get_controls_rename       <- function(controls)   unlist(lapply(controls,   fn_ctrl_rename))
+get_treatments_rename     <- function(treatments) unlist(lapply(treatments, fn_treatment_rename))
+get_random_weight_rename  <- function(ws)         unlist(lapply(ws,         fn_random_weight_rename))
 
 
-##
-# twowayfeweights_rename_var
-twowayfeweights_rename_var <- function(df, Y, G, T, D, D0, controls, treatments, random_weights) {
-  
-  controls_rename <- get_controls_rename(controls)
+# -----------------------------------------------------------------------------
+# Rename input columns to internal canonical names.
+# -----------------------------------------------------------------------------
+twowayfeweights_rename_var <- function(df, Y, G, T, D, D0, controls, treatments,
+                                       random_weights) {
+
+  controls_rename   <- get_controls_rename(controls)
   treatments_rename <- get_treatments_rename(treatments)
-  
-  if (length(random_weights) > 0) {
-    random_weight_rename <- get_random_weight_rename(random_weights)
-    random_weight_df <- df[, random_weights, drop = FALSE]
-    # random_weight_df <- df %>% dplyr::select(all_off(random_weights))
-    colnames(random_weight_df) <- random_weight_rename
-  }
-  
-  original_names = c(Y, G, T, D, controls, treatments)
-  new_names = c("Y", "G", "T", "D", controls_rename, treatments_rename)
-  
+
+  original_names <- c(Y, G, T, D, controls, treatments)
+  new_names      <- c("Y", "G", "T", "D", controls_rename, treatments_rename)
+
   if (!is.null(D0)) {
-    original_names = c(original_names, D0)
-    new_names = c(new_names, "D0")
+    original_names <- c(original_names, D0)
+    new_names      <- c(new_names, "D0")
   }
-  
-  df <- data.frame(df) %>% dplyr::select_at(dplyr::vars(original_names))
-  colnames(df) <- new_names
-  
+
+  out <- data.table::as.data.table(df)[, ..original_names]
+  data.table::setnames(out, old = original_names, new = new_names)
+
   if (length(random_weights) > 0) {
-    df <- cbind(df, random_weight_df)
+    rw_new <- get_random_weight_rename(random_weights)
+    rw_dt  <- data.table::as.data.table(df)[, ..random_weights]
+    data.table::setnames(rw_dt, old = random_weights, new = rw_new)
+    out <- cbind(out, rw_dt)
   }
-  
-  return(df)
+
+  out
 }
 
 
-##
-# twowayfeweights_transform
+# -----------------------------------------------------------------------------
+# Normalize within-cell variation, attach weights, build T factors.
+# -----------------------------------------------------------------------------
 twowayfeweights_transform <- function(df, controls, weights, treatments) {
-  
-  .data = NULL
-  
-  ret = twowayfeweights_normalize_var(df, "D")
+
+  if (!data.table::is.data.table(df)) {
+    df <- data.table::as.data.table(df)
+  }
+
+  ret <- twowayfeweights_normalize_var(df, "D")
   if (ret$retcode) {
     df <- ret$df
     printf("The treatment variable in the regression varies within some group * period cells.")
@@ -63,9 +65,9 @@ twowayfeweights_transform <- function(df, controls, weights, treatments) {
     printf("The command will replace the treatment by its average value in each group * period.")
     printf("The results below apply to the two-way fixed effects regression with that treatment variable.")
   }
-  
+
   for (control in controls) {
-    ret = twowayfeweights_normalize_var(df, control)
+    ret <- twowayfeweights_normalize_var(df, control)
     if (ret$retcode) {
       df <- ret$df
       printf("The control variable %s in the regression varies within some group * period cells.", control)
@@ -75,9 +77,9 @@ twowayfeweights_transform <- function(df, controls, weights, treatments) {
       printf("The results below apply to the regression with control variable %s averaged at the group * period level.", control)
     }
   }
-  
+
   for (treatment in treatments) {
-    ret = twowayfeweights_normalize_var(df, treatment)
+    ret <- twowayfeweights_normalize_var(df, treatment)
     if (ret$retcode) {
       df <- ret$df
       printf("The other treatment variable %s in the regression varies within some group * period cells.", treatment)
@@ -87,100 +89,104 @@ twowayfeweights_transform <- function(df, controls, weights, treatments) {
       printf("The results below apply to the regression with other treatment variable %s averaged at the group * period level.", treatment)
     }
   }
-  
+
   if (is.null(weights)) {
-    df$weights <- 1
+    data.table::set(df, j = "weights", value = 1)
   } else {
-    df$weights <- weights
+    data.table::set(df, j = "weights", value = weights)
   }
-  
-  df$Tfactor <- factor(df$T)
-  TfactorLevels <- length(levels(df$Tfactor))
-  df <- df %>% dplyr::mutate(TFactorNum = as.numeric(factor(.data$Tfactor, labels = seq(1:TfactorLevels))))
-  
-  return(df)
+
+  df[, Tfactor := factor(T)]
+  df[, TFactorNum := as.numeric(Tfactor)]
+
+  df
 }
 
 
-##
-# twowayfeweights_filter
-twowayfeweights_filter <- function(df, Y, G, T, D, D0, cmd_type, controls, treatments) {
-  .data = NULL
-  # Remove rows with NA values
+# -----------------------------------------------------------------------------
+# Drop rows with missing values according to the chosen estimation type.
+# Note: at this point in the pipeline `df` already has the canonical column
+# names "Y", "G", "T", "D" (and "D0" if set), so the original Y/G/T/D/D0
+# parameter values are unused -- we keep them in the signature for backwards
+# compatibility with the call site.
+# -----------------------------------------------------------------------------
+twowayfeweights_filter <- function(df, Y, G, T, D, D0, cmd_type, controls,
+                                   treatments) {
+
+  if (!data.table::is.data.table(df)) {
+    df <- data.table::as.data.table(df)
+  }
+
+  na_count <- function(dt, cols) {
+    if (length(cols) == 0) return(rep(0L, nrow(dt)))
+    Reduce(`+`, lapply(cols, function(cc) as.integer(is.na(dt[[cc]]))))
+  }
+
   if (cmd_type != "fdTR") {
-    df <- df %>%
-      dplyr::mutate(tag = rowSums(dplyr::across(.cols = c(Y, G, T, D, controls, treatments), .fns = is.na))) %>%
-      dplyr::filter(.data$tag == 0) %>%
-      dplyr::select(-.data$tag)
+    cols <- c("Y", "G", "T", "D", controls, treatments)
+    df   <- df[na_count(df, cols) == 0]
   } else {
-    df <- df %>%
-      dplyr::mutate(tag1 = rowSums(dplyr::across(.cols = c(D, T, Y), .fns = is.na))) %>%
-      dplyr::mutate(tag2 = rowSums(dplyr::across(.cols = c(D0), .fns = is.na))) %>%
-      dplyr::filter(.data$tag1 == 0 | .data$tag2 == 0)
-    
+    tag1 <- na_count(df, c("D", "T", "Y"))
+    tag2 <- na_count(df, "D0")
+    keep <- (tag1 == 0) | (tag2 == 0)
+    df   <- df[keep]
+    tag1 <- tag1[keep]
+
     if (length(controls) > 0) {
-      df <- df %>%
-        dplyr::mutate(tag3 = rowSums(dplyr::across(.cols = controls, .fns = is.na))) %>%
-        dplyr::filter(.data$tag1 == 1 | .data$tag3 == 0) %>%
-        dplyr::select(-.data$tag3)
+      tag3 <- na_count(df, controls)
+      df   <- df[(tag1 == 1) | (tag3 == 0)]
     }
-    df <- df %>% dplyr::select(-.data$tag1, -.data$tag2)
   }
-  return(df)
+
+  df
 }
 
 
-
-##
-# twowayfeweights_summarize_weights
+# -----------------------------------------------------------------------------
+# Tally positive / negative weights.
+# -----------------------------------------------------------------------------
 twowayfeweights_summarize_weights <- function(df, var_weight) {
 
-  weight_plus <- df[[var_weight]][df[[var_weight]] > 0 & !is.na(df[[var_weight]])]
-  nr_plus <- length(weight_plus)
-  sum_plus <- sum(weight_plus, na.rm = TRUE)
-  
-  weight_minus <- df[[var_weight]][df[[var_weight]] < 0 & !is.na(df[[var_weight]])]
-  nr_minus <- length(weight_minus)
-  sum_minus <- sum(weight_minus, na.rm = TRUE)
-  
-  nr_weights <- nr_plus + nr_minus
-  
-  return(
-    list(
-      nr_plus    = nr_plus,
-      nr_minus   = nr_minus,
-      nr_weights = nr_weights,
-      sum_plus   = sum_plus,
-      sum_minus  = sum_minus
-    )
-  )
+  w <- df[[var_weight]]
+  ok <- !is.na(w)
 
+  weight_plus  <- w[ok & w > 0]
+  weight_minus <- w[ok & w < 0]
+
+  list(
+    nr_plus    = length(weight_plus),
+    nr_minus   = length(weight_minus),
+    nr_weights = length(weight_plus) + length(weight_minus),
+    sum_plus   = sum(weight_plus),
+    sum_minus  = sum(weight_minus)
+  )
 }
 
-##
-# twowayfeweights_test_random_weights
+
+# -----------------------------------------------------------------------------
+# Test correlation between candidate variables and the weights.
+# -----------------------------------------------------------------------------
 twowayfeweights_test_random_weights <- function(df, random_weights) {
-  
-  .data = NULL
-  
+
+  if (!data.table::is.data.table(df)) {
+    df <- data.table::as.data.table(df)
+  }
+
   mat <- data.frame(matrix(nrow = 0, ncol = 4))
   colnames(mat) <- c("Coef", "SE", "t-stat", "Correlation")
-  df_filtered <- df %>% dplyr::filter(is.finite(.data$W))
-  df_filtered_sub <- subset(df_filtered, df_filtered$nat_weight != 0) #Modif. Diego: added extra line to solve note in R CMD Check
- 
+
+  df_filtered <- df[is.finite(W) & nat_weight != 0]
+
   for (v in random_weights) {
-    formula <- sprintf("%s ~ W", v)
-    # rw.lm = estimatr::lm_robust(formula = as.formula(formula), data = df_filtered_sub, weights = df_filtered_sub$nat_weight, clusters = df_filtered_sub$G, se_type = "stata")
-    # beta <- rw.lm$coefficients[["W"]]
-    # se <- rw.lm$std.error[["W"]]
-    # r2 <- rw.lm$r.squared
-    rw_lm = fixest::feols(fml = as.formula(formula), data = df_filtered_sub, weights = ~nat_weight, vcov = ~G)
-    beta = stats::coef(rw_lm)[["W"]]
-    se = sqrt(diag(stats::vcov(rw_lm)))[["W"]]
-    r2 = fixest::r2(rw_lm)["r2"]
-    
-    mat[v, ] <- c(beta, se, beta/se, if (beta > 0) { sqrt(r2) } else { -sqrt(r2) })
+    fml <- stats::as.formula(sprintf("%s ~ W", v))
+    rw_lm <- fixest::feols(fml = fml, data = df_filtered,
+                           weights = ~nat_weight, vcov = ~G)
+    beta <- stats::coef(rw_lm)[["W"]]
+    se   <- sqrt(diag(stats::vcov(rw_lm)))[["W"]]
+    r2   <- fixest::r2(rw_lm)["r2"]
+    mat[v, ] <- c(beta, se, beta / se,
+                  if (beta > 0) sqrt(r2) else -sqrt(r2))
   }
-  
-  return(mat)
+
+  mat
 }
